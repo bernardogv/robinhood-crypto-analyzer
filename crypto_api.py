@@ -103,8 +103,12 @@ class RobinhoodCryptoAPI:
             return response.json()
         except requests.RequestException as e:
             print(f"Error making API request: {e}")
-            if hasattr(e.response, 'text'):
+            if hasattr(e, 'response') and hasattr(e.response, 'text'):
                 print(f"Response text: {e.response.text}")
+            return None
+        except Exception as e:
+            # Add generic exception handling for all other exceptions
+            print(f"Error making API request: {e}")
             return None
 
     # Account endpoints
