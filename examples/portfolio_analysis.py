@@ -9,6 +9,7 @@ to perform portfolio analysis.
 import os
 import sys
 import json
+import traceback
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -44,13 +45,22 @@ def main():
         print(f"Account Number: {account_info.get('account_number', 'N/A')}")
         print(f"Status: {account_info.get('status', 'N/A')}")
         print(f"Buying Power: {account_info.get('buying_power', 'N/A')} {account_info.get('buying_power_currency', 'USD')}")
+        
+        # Print raw account info for debugging
+        print("\nRaw account information (for debugging):")
+        print(json.dumps(account_info, indent=2))
     except Exception as e:
         print(f"Error getting account information: {e}")
+        traceback.print_exc()
     
     # Get holdings
     print("\nGetting crypto holdings...")
     try:
         holdings = api.get_holdings()
+        
+        # Print raw holdings data for debugging
+        print("\nRaw holdings response (for debugging):")
+        print(json.dumps(holdings, indent=2))
         
         if "results" in holdings and holdings["results"]:
             print(f"Found {len(holdings['results'])} holdings:")
@@ -62,14 +72,57 @@ def main():
                 asset_code = holding.get("asset_code", "N/A")
                 quantity = float(holding.get("quantity", 0))
                 
-                # Get current price for this asset
-                best_price = api.get_best_bid_ask(f"{asset_code}-USD")
+                # Debug individual holding details
+                print(f"\nDetailed information for {asset_code}:")
+                print(json.dumps(holding, indent=2))
                 
-                current_price = 0
-                if "results" in best_price and best_price["results"]:
-                    bid = float(best_price["results"][0].get("bid_price", 0))
-                    ask = float(best_price["results"][0].get("ask_price", 0))
-                    current_price = (bid + ask) / 2
+                # Get current price for this asset
+                try:
+                    best_price = api.get_best_bid_ask(f"{asset_code}-USD")
+                    
+                    # Debug price data
+                    print(f"Raw price data for {asset_code}:")
+                    print(json.dumps(best_price, indent=2))
+                    
+                    current_price = 0
+                    if "results" in best_price and best_price["results"]:
+                        bid = float(best_price["results"][0].get("bid_price", 0))
+                        ask = float(best_price["results"][0].get("ask_price", 0))
+                        current_price = (bid + ask) / 2
+                        print(f"Successfully calculated price for {asset_code}: ${current_price:.2f}")
+                    else:
+                        print(f"Warning: Could not find price data for {asset_code} in API response")
+                except Exception as price_error:
+                    print(f"Error getting price for {asset_code}: {price_error}")
+                    traceback.print_exc()
+                    current_price = 0
+                
+                # Try an alternate approach to calculate holdings from orders
+                if quantity == 0:
+                    print(f"Quantity for {asset_code} is zero, attempting to calculate from orders...")
+                    try:
+                        # Get orders for this asset
+                        all_orders = api.get_orders()
+                        asset_orders = []
+                        
+                        if "results" in all_orders:
+                            for order in all_orders["results"]:
+                                if order.get("symbol") == f"{asset_code}-USD" and order.get("state") == "filled":
+                                    asset_orders.append(order)
+                            
+                            # Calculate net quantity from orders
+                            net_quantity = 0
+                            for order in asset_orders:
+                                filled_quantity = float(order.get("filled_asset_quantity", 0))
+                                if order.get("side") == "buy":
+                                    net_quantity += filled_quantity
+                                else:
+                                    net_quantity -= filled_quantity
+                            
+                            print(f"Calculated quantity from orders for {asset_code}: {net_quantity}")
+                            quantity = net_quantity
+                    except Exception as order_error:
+                        print(f"Error calculating quantity from orders for {asset_code}: {order_error}")
                 
                 current_value = quantity * current_price
                 
@@ -100,40 +153,50 @@ def main():
             
             # Get recent orders
             print("\nGetting recent orders...")
-            orders = api.get_orders()
-            
-            if "results" in orders and orders["results"]:
-                print(f"Found {len(orders['results'])} orders:")
+            try:
+                orders = api.get_orders()
                 
-                # Group orders by state
-                order_states = {}
-                for order in orders["results"]:
-                    state = order.get("state", "unknown")
-                    if state not in order_states:
-                        order_states[state] = []
-                    order_states[state].append(order)
-                
-                # Print order summary
-                for state, state_orders in order_states.items():
-                    print(f"  - {state.capitalize()}: {len(state_orders)}")
-                
-                # Print recent filled orders
-                if "filled" in order_states:
-                    print("\nRecent filled orders:")
-                    for order in sorted(order_states["filled"], key=lambda x: x.get("updated_at", ""), reverse=True)[:5]:
-                        symbol = order.get("symbol", "N/A")
-                        side = order.get("side", "N/A")
-                        filled_quantity = order.get("filled_asset_quantity", "N/A")
-                        average_price = order.get("average_price", "N/A")
-                        date = order.get("updated_at", "N/A")
-                        
-                        print(f"  - {date}: {side.upper()} {filled_quantity} {symbol} @ ${average_price}")
-            else:
-                print("No orders found.")
+                if "results" in orders and orders["results"]:
+                    print(f"Found {len(orders['results'])} orders:")
+                    
+                    # Group orders by state
+                    order_states = {}
+                    for order in orders["results"]:
+                        state = order.get("state", "unknown")
+                        if state not in order_states:
+                            order_states[state] = []
+                        order_states[state].append(order)
+                    
+                    # Print order summary
+                    for state, state_orders in order_states.items():
+                        print(f"  - {state.capitalize()}: {len(state_orders)}")
+                    
+                    # Print recent filled orders
+                    if "filled" in order_states:
+                        print("\nRecent filled orders:")
+                        for order in sorted(order_states["filled"], key=lambda x: x.get("updated_at", ""), reverse=True)[:5]:
+                            symbol = order.get("symbol", "N/A")
+                            side = order.get("side", "N/A")
+                            filled_quantity = order.get("filled_asset_quantity", "N/A")
+                            average_price = order.get("average_price", "N/A")
+                            date = order.get("updated_at", "N/A")
+                            
+                            print(f"  - {date}: {side.upper()} {filled_quantity} {symbol} @ ${average_price}")
+                else:
+                    print("No orders found.")
+            except Exception as order_error:
+                print(f"Error retrieving orders: {order_error}")
+                traceback.print_exc()
         else:
-            print("No holdings found.")
+            print("No holdings found or holdings data structure is unexpected.")
+            
+            # Try to inspect the holdings data structure
+            print("Holdings data type:", type(holdings))
+            if isinstance(holdings, dict):
+                print("Holdings keys:", holdings.keys())
     except Exception as e:
         print(f"Error analyzing portfolio: {e}")
+        traceback.print_exc()
     
     print("\nPortfolio analysis complete.")
 
