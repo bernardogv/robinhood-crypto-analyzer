@@ -25,17 +25,32 @@ A Python application for analyzing leading cryptocurrencies using the Robinhood 
    cd robinhood-crypto-analyzer
    ```
 
-2. Install dependencies:
+2. Set up a virtual environment (recommended):
+   ```
+   # Create a virtual environment
+   python -m venv venv
+   
+   # Activate the virtual environment
+   # On Windows
+   venv\Scripts\activate
+   # On macOS/Linux
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-3. Set up your API credentials:
+4. Set up your API credentials:
    - Visit the [Robinhood API Credentials Portal](https://robinhood.com/us/en/about/crypto/) to create credentials
-   - Generate your key pair using the provided scripts in `utils/generate_keys.py`
+   - Generate your key pair using the provided scripts in `utils/generate_keys.py`:
+     ```
+     python utils/generate_keys.py
+     ```
    - Store your API key and private key securely
 
-4. Configure the application:
+5. Configure the application:
    - Copy `config.example.py` to `config.py`
    - Add your API key and base64-encoded private key
 
@@ -44,6 +59,18 @@ A Python application for analyzing leading cryptocurrencies using the Robinhood 
 Run the main analyzer script:
 ```
 python crypto_analyzer.py
+```
+
+Alternatively, try one of the example scripts:
+```
+# Run market analysis
+python examples/market_analysis.py
+
+# Run portfolio analysis
+python examples/portfolio_analysis.py
+
+# Launch the interactive dashboard
+python examples/run_dashboard.py
 ```
 
 ## Module Structure
