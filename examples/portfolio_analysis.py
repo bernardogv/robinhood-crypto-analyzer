@@ -43,7 +43,7 @@ def main():
     try:
         account_info = api.get_account()
         if account_info is None:
-            print("Error: Failed to retrieve account information from API.")
+            print("Error analyzing portfolio: Failed to retrieve account information from API.")
             return
             
         print(f"Account Number: {account_info.get('account_number', 'N/A')}")
