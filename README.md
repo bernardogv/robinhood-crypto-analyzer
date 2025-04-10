@@ -9,6 +9,10 @@ A Python application for analyzing leading cryptocurrencies using the Robinhood 
 - **Portfolio Analysis**: View and analyze your crypto holdings
 - **Visualization**: Generate charts and graphs of crypto price trends
 - **Trading Strategies**: Implement and test various trading strategies
+  - Moving Average Crossover Strategy
+  - RSI (Relative Strength Index) Strategy
+  - Spread Trading Strategy
+  - **XRP Advanced Trading Strategy**: Multi-indicator strategy optimized for XRP trading
 
 ## Requirements
 
@@ -53,6 +57,7 @@ A Python application for analyzing leading cryptocurrencies using the Robinhood 
 5. Configure the application:
    - Copy `config.example.py` to `config.py`
    - Add your API key and base64-encoded private key
+   - Adjust strategy parameters as needed
 
 ## Usage
 
@@ -71,6 +76,28 @@ python examples/portfolio_analysis.py
 
 # Launch the interactive dashboard
 python examples/run_dashboard.py
+
+# Test the XRP trading strategy
+python examples/xrp_trading_example.py
+```
+
+### XRP Trading Strategy
+
+The XRP Advanced Trading Strategy combines multiple technical indicators to generate trading signals for XRP:
+
+- **Multi-Indicator Approach**: Combines RSI, Bollinger Bands, and MACD indicators
+- **Volatility-Based Position Sizing**: Adjusts position size based on market volatility
+- **Dynamic Stop-Loss Mechanism**: Implements trailing stops to protect profits
+- **Market Sentiment Integration**: Incorporates broader market sentiment in trading decisions
+
+To run a backtest of the XRP trading strategy:
+```
+python examples/xrp_trading_example.py --mode backtest
+```
+
+To run a simulation of live trading (without actual trades):
+```
+python examples/xrp_trading_example.py --mode simulate
 ```
 
 ## Module Structure
@@ -79,6 +106,8 @@ python examples/run_dashboard.py
 - `analyzers/`: Modules for different types of crypto analysis
 - `visualizers/`: Data visualization tools
 - `strategies/`: Trading strategy implementations
+  - `basic_strategies.py`: Implementation of basic trading strategies
+  - `xrp_advanced_strategy.py`: Advanced XRP trading strategy
 - `utils/`: Utility functions and helper scripts
 - `config.py`: Configuration settings
 
