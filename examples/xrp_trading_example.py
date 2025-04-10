@@ -36,6 +36,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger('xrp_trading_example')
 
+# Default XRP strategy configuration in case it's not in config.py
+DEFAULT_XRP_STRATEGY_CONFIG = {
+    "symbol": "XRP-USD",
+    "rsi_window": 14,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70,
+    "bb_window": 20,
+    "bb_std": 2.0,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "volatility_window": 20,
+    "max_position_size": 0.1,  # 10% of available funds
+    "stop_loss_pct": 0.05,     # 5% stop loss
+    "take_profit_pct": 0.15,   # 15% take profit
+    "sentiment_weight": 0.2    # 20% weight for sentiment
+}
+
 def backtest_strategy():
     """Run a backtest of the XRP trading strategy."""
     logger.info("Starting XRP trading strategy backtest")
@@ -44,7 +62,15 @@ def backtest_strategy():
     api = RobinhoodCryptoAPI(config.API_KEY, config.BASE64_PRIVATE_KEY)
     
     # Create strategy instance using parameters from config
-    strategy = XRPAdvancedStrategy(api, **config.XRP_STRATEGY_CONFIG)
+    # Check if XRP_STRATEGY_CONFIG exists in config, otherwise use default
+    try:
+        strategy_config = getattr(config, 'XRP_STRATEGY_CONFIG', DEFAULT_XRP_STRATEGY_CONFIG)
+        logger.info(f"Using strategy configuration: {strategy_config}")
+    except AttributeError:
+        logger.warning("XRP_STRATEGY_CONFIG not found in config.py, using default configuration")
+        strategy_config = DEFAULT_XRP_STRATEGY_CONFIG
+    
+    strategy = XRPAdvancedStrategy(api, **strategy_config)
     
     # Run backtest
     results = strategy.backtest()
@@ -144,7 +170,15 @@ def live_trading_simulation():
     api = RobinhoodCryptoAPI(config.API_KEY, config.BASE64_PRIVATE_KEY)
     
     # Create strategy instance
-    strategy = XRPAdvancedStrategy(api, **config.XRP_STRATEGY_CONFIG)
+    # Check if XRP_STRATEGY_CONFIG exists in config, otherwise use default
+    try:
+        strategy_config = getattr(config, 'XRP_STRATEGY_CONFIG', DEFAULT_XRP_STRATEGY_CONFIG)
+        logger.info(f"Using strategy configuration: {strategy_config}")
+    except AttributeError:
+        logger.warning("XRP_STRATEGY_CONFIG not found in config.py, using default configuration")
+        strategy_config = DEFAULT_XRP_STRATEGY_CONFIG
+    
+    strategy = XRPAdvancedStrategy(api, **strategy_config)
     
     # Simulation parameters
     sim_duration = 10  # Number of iterations for the simulation
