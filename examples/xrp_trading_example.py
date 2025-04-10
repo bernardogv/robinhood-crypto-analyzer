@@ -37,30 +37,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger('xrp_trading_example')
 
-# Default XRP strategy configuration in case it's not in config.py
-DEFAULT_XRP_STRATEGY_CONFIG = {
+# Enhanced XRP strategy configuration with more aggressive parameters
+ENHANCED_XRP_STRATEGY_CONFIG = {
     "symbol": "XRP-USD",
     "rsi_window": 14,
-    "rsi_oversold": 30,
-    "rsi_overbought": 70,
-    "bb_window": 20,
-    "bb_std": 2.0,
-    "macd_fast": 12,
-    "macd_slow": 26,
+    "rsi_oversold": 40,      # Increased from 30 to be more sensitive
+    "rsi_overbought": 60,    # Decreased from 70 to be more sensitive
+    "bb_window": 15,         # Decreased from 20 for faster response
+    "bb_std": 1.8,          # Decreased from 2.0 to tighten bands
+    "macd_fast": 8,          # Decreased from 12 for faster response
+    "macd_slow": 20,         # Decreased from 26 for faster response
     "macd_signal": 9,
-    "volatility_window": 20,
-    "max_position_size": 0.1,  # 10% of available funds
-    "stop_loss_pct": 0.05,     # 5% stop loss
-    "take_profit_pct": 0.15,   # 15% take profit
-    "sentiment_weight": 0.2    # 20% weight for sentiment
+    "volatility_window": 15, # Decreased from 20
+    "max_position_size": 0.1,
+    "stop_loss_pct": 0.04,   # Tightened from 0.05
+    "take_profit_pct": 0.12, # Decreased from 0.15 for more frequent profits
+    "sentiment_weight": 0.3  # Increased from 0.2 for more influence
 }
 
-def generate_mock_price_data(days=60):
+def generate_mock_price_data(days=60, volatility_factor=1.5):
     """
     Generate mock price data for XRP for testing without API connection.
     
     Args:
         days: Number of days of data to generate
+        volatility_factor: Multiplier for price volatility
         
     Returns:
         DataFrame with mock price history
@@ -74,15 +75,16 @@ def generate_mock_price_data(days=60):
     # Start with a base price around current XRP value
     base_price = 2.20
     
-    # Add a slight upward trend
-    trend = np.linspace(0, 0.5, len(dates))
+    # Add a trend (combination of upward and downward movements)
+    t = np.linspace(0, 1, len(dates))
+    trend = 0.2 * np.sin(2 * np.pi * t) + 0.3 * t
     
     # Add some cyclical patterns (sine waves of different frequencies)
-    cycle1 = 0.15 * np.sin(np.linspace(0, 3 * np.pi, len(dates)))
-    cycle2 = 0.07 * np.sin(np.linspace(0, 8 * np.pi, len(dates)))
+    cycle1 = 0.25 * np.sin(np.linspace(0, 6 * np.pi, len(dates)))  # Increased amplitude
+    cycle2 = 0.15 * np.sin(np.linspace(0, 15 * np.pi, len(dates)))  # Increased amplitude and frequency
     
-    # Add some random volatility
-    volatility = np.random.normal(0, 0.05, len(dates))
+    # Add some random volatility (increased)
+    volatility = np.random.normal(0, 0.08 * volatility_factor, len(dates))
     
     # Combine components
     prices = base_price + trend + cycle1 + cycle2 + volatility
@@ -90,9 +92,9 @@ def generate_mock_price_data(days=60):
     # Ensure prices are positive
     prices = np.maximum(prices, 0.5)
     
-    # Generate realistic volumes
-    volumes = np.random.uniform(50000000, 200000000, len(dates))
-    volumes = volumes * (1 + 0.5 * np.sin(np.linspace(0, 4 * np.pi, len(dates))))  # Add cyclical pattern to volume
+    # Generate realistic volumes with higher volatility
+    volumes = np.random.uniform(80000000, 250000000, len(dates))
+    volumes = volumes * (1 + 0.7 * np.sin(np.linspace(0, 8 * np.pi, len(dates))))  # Add cyclical pattern to volume
     
     # Create DataFrame
     df = pd.DataFrame({
@@ -103,28 +105,89 @@ def generate_mock_price_data(days=60):
     
     return df
 
+class MockXRPStrategy(XRPAdvancedStrategy):
+    """
+    A mock implementation of XRPAdvancedStrategy that overrides API-dependent methods
+    to work with simulated data.
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._mock_price_data = None
+        self._mock_sentiment = None
+    
+    def set_mock_data(self, price_data, sentiment=None):
+        """Set mock price data and sentiment."""
+        self._mock_price_data = price_data
+        self._mock_sentiment = sentiment
+    
+    def get_price_history(self, days=30):
+        """Override to use mock data instead of API calls."""
+        if self._mock_price_data is None:
+            self._mock_price_data = generate_mock_price_data(days=90, volatility_factor=1.5)
+        
+        return self._mock_price_data.iloc[-days:]
+    
+    def get_market_sentiment(self):
+        """Override to use mock sentiment data."""
+        if self._mock_sentiment is not None:
+            return self._mock_sentiment
+        
+        # Generate synthetic sentiment data that correlates somewhat with price changes
+        recent_data = self._mock_price_data.iloc[-14:]
+        price_change = (recent_data['Price'].iloc[-1] / recent_data['Price'].iloc[0]) - 1
+        
+        # Base sentiment on recent price change plus random noise
+        sentiment_base = np.tanh(price_change * 3)  # Scale and bound between -1 and 1
+        noise = np.random.normal(0, 0.3)  # Add some randomness
+        sentiment = sentiment_base + noise
+        sentiment = max(-1, min(1, sentiment))  # Ensure between -1 and 1
+        
+        return sentiment
+    
+    def calculate_indicators(self, price_history):
+        """Enhanced indicator calculation with more signal generation."""
+        df = super().calculate_indicators(price_history)
+        
+        # Add some additional indicators that might help with signal generation
+        
+        # Add Rate of Change (ROC)
+        df['ROC'] = price_history['Price'].pct_change(5) * 100
+        
+        # Add Average Directional Index (ADX) - simplified version
+        plus_dm = price_history['Price'].diff()
+        plus_dm[plus_dm < 0] = 0
+        minus_dm = price_history['Price'].diff()
+        minus_dm[minus_dm > 0] = 0
+        minus_dm = abs(minus_dm)
+        
+        tr = pd.DataFrame()
+        tr['h-l'] = price_history['Price'].diff().abs()  # Using price diff as a simple approximation
+        tr['h-c'] = price_history['Price'].shift(1).diff().abs()
+        tr['l-c'] = price_history['Price'].shift(1).diff().abs()
+        tr['tr'] = tr.max(axis=1)
+        
+        plus_di = 100 * plus_dm.rolling(window=14).mean() / tr['tr'].rolling(window=14).mean()
+        minus_di = 100 * minus_dm.rolling(window=14).mean() / tr['tr'].rolling(window=14).mean()
+        dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
+        df['ADX'] = dx.rolling(window=14).mean()
+        
+        return df
+
 def backtest_strategy():
-    """Run a backtest of the XRP trading strategy."""
+    """Run a backtest of the XRP trading strategy with enhanced parameters."""
     logger.info("Starting XRP trading strategy backtest")
     
     # Initialize API client (use demo mode for backtesting)
     api = RobinhoodCryptoAPI(config.API_KEY, config.BASE64_PRIVATE_KEY)
     
-    # Create strategy instance using parameters from config
-    # Check if XRP_STRATEGY_CONFIG exists in config, otherwise use default
-    try:
-        strategy_config = getattr(config, 'XRP_STRATEGY_CONFIG', DEFAULT_XRP_STRATEGY_CONFIG)
-        logger.info(f"Using strategy configuration: {strategy_config}")
-    except AttributeError:
-        logger.warning("XRP_STRATEGY_CONFIG not found in config.py, using default configuration")
-        strategy_config = DEFAULT_XRP_STRATEGY_CONFIG
+    # Create strategy instance with enhanced parameters
+    logger.info(f"Using enhanced strategy configuration: {ENHANCED_XRP_STRATEGY_CONFIG}")
+    strategy = MockXRPStrategy(api, **ENHANCED_XRP_STRATEGY_CONFIG)
     
-    strategy = XRPAdvancedStrategy(api, **strategy_config)
-    
-    # Override the get_price_history method to use our mock data
-    # This allows testing without a working API connection
-    mock_price_data = generate_mock_price_data(days=90)  # 90 days of mock data
-    strategy.get_price_history = lambda days=30: mock_price_data.iloc[-days:]
+    # Generate mock price data with increased volatility
+    mock_price_data = generate_mock_price_data(days=90, volatility_factor=1.8)
+    strategy.set_mock_data(mock_price_data)
     
     # Run backtest
     results = strategy.backtest()
@@ -136,6 +199,22 @@ def backtest_strategy():
     logger.info(f"Profit Factor: {results['profit_factor']:.2f}")
     logger.info(f"Sharpe Ratio: {results['sharpe_ratio']:.2f}")
     logger.info(f"Number of Trades: {len(results['trades'])}")
+    
+    if len(results['trades']) > 0:
+        trade_summaries = []
+        for i, trade in enumerate(results['trades'], 1):
+            if 'profit_loss_pct' in trade:
+                trade_summaries.append(
+                    f"Trade {i}: {trade['action']} at {trade['exit_price']:.4f}, PnL: {trade['profit_loss_pct']:.2f}%"
+                )
+            else:
+                trade_summaries.append(
+                    f"Trade {i}: {trade['action']} at {trade.get('entry_price', 0):.4f}"
+                )
+        
+        logger.info("Trade Summary:")
+        for summary in trade_summaries:
+            logger.info(summary)
     
     # Visualize the results
     visualize_results(results)
@@ -223,22 +302,13 @@ def live_trading_simulation():
     # Initialize API client
     api = RobinhoodCryptoAPI(config.API_KEY, config.BASE64_PRIVATE_KEY)
     
-    # Create strategy instance
-    # Check if XRP_STRATEGY_CONFIG exists in config, otherwise use default
-    try:
-        strategy_config = getattr(config, 'XRP_STRATEGY_CONFIG', DEFAULT_XRP_STRATEGY_CONFIG)
-        logger.info(f"Using strategy configuration: {strategy_config}")
-    except AttributeError:
-        logger.warning("XRP_STRATEGY_CONFIG not found in config.py, using default configuration")
-        strategy_config = DEFAULT_XRP_STRATEGY_CONFIG
-    
-    strategy = XRPAdvancedStrategy(api, **strategy_config)
+    # Create strategy instance with enhanced parameters
+    logger.info(f"Using enhanced strategy configuration: {ENHANCED_XRP_STRATEGY_CONFIG}")
+    strategy = MockXRPStrategy(api, **ENHANCED_XRP_STRATEGY_CONFIG)
     
     # Generate mock price data for the simulation
-    mock_prices = generate_mock_price_data(days=30)
-    
-    # Override the get_price_history method to use our mock data
-    strategy.get_price_history = lambda days=30: mock_prices.iloc[-days:]
+    mock_prices = generate_mock_price_data(days=30, volatility_factor=1.8)
+    strategy.set_mock_data(mock_prices)
     
     # Simulation parameters
     sim_duration = 10  # Number of iterations for the simulation
@@ -255,8 +325,8 @@ def live_trading_simulation():
         
         try:
             # Generate a slightly updated price with random movement
-            # Current price moves up or down by up to 2%
-            price_change = (np.random.random() - 0.5) * 0.04  # -2% to +2%
+            # Current price moves up or down by up to 3%
+            price_change = (np.random.random() - 0.5) * 0.06  # -3% to +3%
             current_price = last_price * (1 + price_change)
             last_price = current_price
             
@@ -264,7 +334,7 @@ def live_trading_simulation():
             signal = {
                 'date': datetime.now(),
                 'price': current_price,
-                'signal': np.random.choice(['buy', 'sell', 'hold'], p=[0.2, 0.2, 0.6]),  # Mostly hold with occasional buy/sell
+                'signal': np.random.choice(['buy', 'sell', 'hold'], p=[0.3, 0.3, 0.4]),  # More active trading
                 'rsi': np.random.uniform(20, 80),
                 'bb_width': np.random.uniform(0.02, 0.06),
                 'macd_histogram': np.random.uniform(-0.02, 0.02),
