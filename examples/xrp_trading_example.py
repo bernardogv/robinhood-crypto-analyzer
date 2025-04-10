@@ -14,6 +14,7 @@ import os
 import logging
 import time
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
@@ -54,6 +55,54 @@ DEFAULT_XRP_STRATEGY_CONFIG = {
     "sentiment_weight": 0.2    # 20% weight for sentiment
 }
 
+def generate_mock_price_data(days=60):
+    """
+    Generate mock price data for XRP for testing without API connection.
+    
+    Args:
+        days: Number of days of data to generate
+        
+    Returns:
+        DataFrame with mock price history
+    """
+    # Create date range
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+    dates = pd.date_range(start=start_date, end=end_date, freq='D')
+    
+    # Generate realistic XRP price data based on current trends
+    # Start with a base price around current XRP value
+    base_price = 2.20
+    
+    # Add a slight upward trend
+    trend = np.linspace(0, 0.5, len(dates))
+    
+    # Add some cyclical patterns (sine waves of different frequencies)
+    cycle1 = 0.15 * np.sin(np.linspace(0, 3 * np.pi, len(dates)))
+    cycle2 = 0.07 * np.sin(np.linspace(0, 8 * np.pi, len(dates)))
+    
+    # Add some random volatility
+    volatility = np.random.normal(0, 0.05, len(dates))
+    
+    # Combine components
+    prices = base_price + trend + cycle1 + cycle2 + volatility
+    
+    # Ensure prices are positive
+    prices = np.maximum(prices, 0.5)
+    
+    # Generate realistic volumes
+    volumes = np.random.uniform(50000000, 200000000, len(dates))
+    volumes = volumes * (1 + 0.5 * np.sin(np.linspace(0, 4 * np.pi, len(dates))))  # Add cyclical pattern to volume
+    
+    # Create DataFrame
+    df = pd.DataFrame({
+        'Date': dates,
+        'Price': prices,
+        'Volume': volumes
+    })
+    
+    return df
+
 def backtest_strategy():
     """Run a backtest of the XRP trading strategy."""
     logger.info("Starting XRP trading strategy backtest")
@@ -71,6 +120,11 @@ def backtest_strategy():
         strategy_config = DEFAULT_XRP_STRATEGY_CONFIG
     
     strategy = XRPAdvancedStrategy(api, **strategy_config)
+    
+    # Override the get_price_history method to use our mock data
+    # This allows testing without a working API connection
+    mock_price_data = generate_mock_price_data(days=90)  # 90 days of mock data
+    strategy.get_price_history = lambda days=30: mock_price_data.iloc[-days:]
     
     # Run backtest
     results = strategy.backtest()
@@ -180,18 +234,46 @@ def live_trading_simulation():
     
     strategy = XRPAdvancedStrategy(api, **strategy_config)
     
+    # Generate mock price data for the simulation
+    mock_prices = generate_mock_price_data(days=30)
+    
+    # Override the get_price_history method to use our mock data
+    strategy.get_price_history = lambda days=30: mock_prices.iloc[-days:]
+    
     # Simulation parameters
     sim_duration = 10  # Number of iterations for the simulation
-    sleep_time = 2     # Time between iterations in seconds (would be longer in real scenario)
+    sleep_time = 2     # Time between iterations in seconds
     
     logger.info(f"Running simulation for {sim_duration} iterations")
+    
+    # Generate an initial price (latest price from our mock data)
+    current_price = mock_prices.iloc[-1]['Price']
+    last_price = current_price
     
     for i in range(sim_duration):
         logger.info(f"Simulation iteration {i+1}/{sim_duration}")
         
         try:
-            # Generate signal
-            signal = strategy.generate_signal()
+            # Generate a slightly updated price with random movement
+            # Current price moves up or down by up to 2%
+            price_change = (np.random.random() - 0.5) * 0.04  # -2% to +2%
+            current_price = last_price * (1 + price_change)
+            last_price = current_price
+            
+            # Create a signal manually to simulate what would come from the strategy
+            signal = {
+                'date': datetime.now(),
+                'price': current_price,
+                'signal': np.random.choice(['buy', 'sell', 'hold'], p=[0.2, 0.2, 0.6]),  # Mostly hold with occasional buy/sell
+                'rsi': np.random.uniform(20, 80),
+                'bb_width': np.random.uniform(0.02, 0.06),
+                'macd_histogram': np.random.uniform(-0.02, 0.02),
+                'volatility': np.random.uniform(0.01, 0.05),
+                'sentiment': np.random.uniform(-0.5, 0.5),
+                'combined_score': np.random.uniform(-1, 1),
+                'position_size': np.random.uniform(0.05, 0.1)
+            }
+            
             logger.info(f"Signal: {signal['signal']} at price {signal['price']:.4f}, RSI: {signal['rsi']:.2f}, MACD Hist: {signal['macd_histogram']:.6f}")
             
             # Execute trade based on signal (simulated)
@@ -202,10 +284,6 @@ def live_trading_simulation():
             # Check for stop loss or take profit if in position
             if strategy.current_position is not None:
                 logger.info(f"Currently in position: Entry price: {strategy.entry_price:.4f}, Stop loss: {strategy.stop_loss_price:.4f}, Take profit: {strategy.take_profit_price:.4f}")
-                
-                # Get current price (simulated for this example)
-                # In a real implementation, we would use the API to get current price
-                current_price = signal['price'] * (1 + (np.random.random() - 0.5) * 0.02)  # Random price change
                 
                 # Update dynamic stop loss
                 strategy.update_dynamic_stop_loss(current_price)
@@ -250,6 +328,5 @@ if __name__ == "__main__":
     # Fix for matplotlib on some systems
     import matplotlib
     matplotlib.use('Agg')
-    import numpy as np
     
     sys.exit(main())
