@@ -17,6 +17,7 @@ DEFAULT_SYMBOLS = [
     "SOL-USD",  # Solana
     "DOGE-USD", # Dogecoin
     "ADA-USD",  # Cardano
+    "XRP-USD",  # XRP (Ripple)
     # Add more symbols as needed
 ]
 
@@ -30,4 +31,43 @@ ANALYSIS_SETTINGS = {
     
     # Include canceled orders in analysis
     "include_canceled": True
+}
+
+# XRP Advanced Trading Strategy Configuration
+XRP_STRATEGY_CONFIG = {
+    "symbol": "XRP-USD",
+    "rsi_window": 14,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70,
+    "bb_window": 20,
+    "bb_std": 2.0,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "volatility_window": 20,
+    "max_position_size": 0.1,  # 10% of available funds
+    "stop_loss_pct": 0.05,     # 5% stop loss
+    "take_profit_pct": 0.15,   # 15% take profit
+    "sentiment_weight": 0.2    # 20% weight for sentiment
+}
+
+# Trading Strategy Settings
+STRATEGY_SETTINGS = {
+    # Moving Average Crossover Strategy
+    "ma_crossover": {
+        "short_window": 20,
+        "long_window": 50
+    },
+    
+    # RSI Strategy
+    "rsi": {
+        "window": 14,
+        "oversold": 30,
+        "overbought": 70
+    },
+    
+    # Spread Trading Strategy
+    "spread_trading": {
+        "spread_threshold": 0.5
+    }
 }
