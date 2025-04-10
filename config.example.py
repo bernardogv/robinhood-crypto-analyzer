@@ -35,7 +35,10 @@ ANALYSIS_SETTINGS = {
 
 # XRP Advanced Trading Strategy Configuration
 XRP_STRATEGY_CONFIG = {
+    # Trading pair
     "symbol": "XRP-USD",
+    
+    # Technical indicator parameters
     "rsi_window": 14,
     "rsi_oversold": 30,
     "rsi_overbought": 70,
@@ -44,11 +47,28 @@ XRP_STRATEGY_CONFIG = {
     "macd_fast": 12,
     "macd_slow": 26,
     "macd_signal": 9,
+    
+    # Risk management parameters
     "volatility_window": 20,
     "max_position_size": 0.1,  # 10% of available funds
     "stop_loss_pct": 0.05,     # 5% stop loss
     "take_profit_pct": 0.15,   # 15% take profit
-    "sentiment_weight": 0.2    # 20% weight for sentiment
+    
+    # Sentiment weight in trading decisions
+    "sentiment_weight": 0.2,   # 20% weight for sentiment
+    
+    # Live trading parameters
+    "check_interval": 300,     # Check for signals every 5 minutes
+    "auto_trade": False,       # Whether to execute trades automatically
+    "paper_trading": True,     # Use paper trading mode
+    "data_lookback_days": 30   # Days of historical data to use
+}
+
+# External API keys (for market analysis)
+EXTERNAL_API_KEYS = {
+    "cryptocompare": "YOUR_CRYPTOCOMPARE_API_KEY",
+    "coinmarketcap": "YOUR_COINMARKETCAP_API_KEY",
+    "twitter": "YOUR_TWITTER_API_KEY"
 }
 
 # Trading Strategy Settings
