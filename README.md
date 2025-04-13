@@ -1,36 +1,41 @@
 # Robinhood Crypto Analyzer
 
-A Python application for analyzing leading cryptocurrencies using the Robinhood Crypto API.
+A comprehensive Python application for analyzing and trading cryptocurrencies using the Robinhood Crypto API.
+
+## Overview
+
+This tool provides a robust framework for cryptocurrency analysis, combining real-time market data from Robinhood with advanced technical indicators to generate trading signals. It's designed for both educational purposes and actual trading, with features for backtesting strategies before deploying them in a live environment.
 
 ## Features
 
 - **Authentication**: Secure access to Robinhood's Crypto API
-- **Market Data Analysis**: Track the best prices and estimated prices for cryptocurrencies
-- **Portfolio Analysis**: View and analyze your crypto holdings
-- **Visualization**: Generate charts and graphs of crypto price trends
-- **Trading Strategies**: Implement and test various trading strategies
+- **Market Data Analysis**: Track and analyze cryptocurrency prices, spreads, and market trends
+- **Portfolio Analysis**: View and analyze your crypto holdings and performance
+- **Visualization**: Generate charts and graphs of crypto price trends and strategy performance
+- **Trading Strategies**:
   - Moving Average Crossover Strategy
-  - RSI (Relative Strength Index) Strategy
+  - RSI (Relative Strength Index) Strategy 
   - Spread Trading Strategy
   - **XRP Advanced Trading Strategy**: Multi-indicator strategy optimized for XRP trading
+- **Backtesting Framework**: Test strategies against historical data
+- **Live Trading Simulation**: Simulate your strategy in a paper trading environment
 
 ## Requirements
 
 - Python 3.8+
 - Robinhood API credentials (API key and secret key)
-- PyNaCl library
-- Other dependencies listed in requirements.txt
+- Dependencies listed in requirements.txt
 
-## Setup
+## Installation
 
 1. Clone this repository:
-   ```
+   ```bash
    git clone https://github.com/bernardogv/robinhood-crypto-analyzer.git
    cd robinhood-crypto-analyzer
    ```
 
-2. Set up a virtual environment (recommended):
-   ```
+2. Set up a virtual environment:
+   ```bash
    # Create a virtual environment
    python -m venv venv
    
@@ -42,74 +47,105 @@ A Python application for analyzing leading cryptocurrencies using the Robinhood 
    ```
 
 3. Install dependencies:
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
 4. Set up your API credentials:
    - Visit the [Robinhood API Credentials Portal](https://robinhood.com/us/en/about/crypto/) to create credentials
-   - Generate your key pair using the provided scripts in `utils/generate_keys.py`:
-     ```
-     python utils/generate_keys.py
-     ```
-   - Store your API key and private key securely
-
-5. Configure the application:
    - Copy `config.example.py` to `config.py`
-   - Add your API key and base64-encoded private key
-   - Adjust strategy parameters as needed
+   - Add your API key and base64-encoded private key to `config.py`
 
 ## Usage
 
+### Basic Usage
+
 Run the main analyzer script:
-```
+```bash
 python crypto_analyzer.py
 ```
 
-Alternatively, try one of the example scripts:
-```
-# Run market analysis
-python examples/market_analysis.py
-
-# Run portfolio analysis
-python examples/portfolio_analysis.py
-
-# Launch the interactive dashboard
-python examples/run_dashboard.py
-
-# Test the XRP trading strategy
-python examples/xrp_trading_example.py
+This will run with default settings. For more options:
+```bash
+python crypto_analyzer.py --help
 ```
 
-### XRP Trading Strategy
+### Specific Analysis Commands
 
-The XRP Advanced Trading Strategy combines multiple technical indicators to generate trading signals for XRP:
+```bash
+# Market analysis of specific symbols
+python crypto_analyzer.py --market --symbols BTC-USD ETH-USD XRP-USD
+
+# Analyze price spreads
+python crypto_analyzer.py --spreads
+
+# Analyze your holdings
+python crypto_analyzer.py --holdings
+
+# Analyze your order history
+python crypto_analyzer.py --orders
+
+# Save results to a file
+python crypto_analyzer.py --market --output market_data.json
+```
+
+### Running the XRP Strategy
+
+```bash
+# Run backtest of the XRP strategy
+python examples/xrp_trading_example.py --mode backtest
+
+# Run simulation of the XRP strategy (without actual trades)
+python examples/xrp_trading_example.py --mode simulate
+```
+
+## Project Structure
+
+- `crypto_api.py`: Core API client for Robinhood Crypto
+- `crypto_analyzer.py`: Main entry point with command-line interface
+- `analyzers/`: Modules for different types of crypto analysis
+- `visualizers/`: Data visualization tools
+- `strategies/`: Trading strategy implementations
+  - `basic_strategies.py`: Implementation of basic trading strategies (MA, RSI, Spread)
+  - `xrp_advanced_strategy.py`: Advanced multi-indicator XRP trading strategy
+- `examples/`: Example scripts demonstrating specific use cases
+- `utils/`: Utility functions and helper scripts
+- `config.py`: Configuration settings
+
+## XRP Advanced Trading Strategy
+
+The XRP Advanced Trading Strategy is a sophisticated approach that combines multiple technical indicators to generate trading signals specifically optimized for XRP:
 
 - **Multi-Indicator Approach**: Combines RSI, Bollinger Bands, and MACD indicators
 - **Volatility-Based Position Sizing**: Adjusts position size based on market volatility
 - **Dynamic Stop-Loss Mechanism**: Implements trailing stops to protect profits
 - **Market Sentiment Integration**: Incorporates broader market sentiment in trading decisions
 
-To run a backtest of the XRP trading strategy:
-```
-python examples/xrp_trading_example.py --mode backtest
+### Strategy Parameters
+
+The strategy's behavior can be customized by modifying parameters in `config.py`:
+
+```python
+XRP_STRATEGY_CONFIG = {
+    "symbol": "XRP-USD",
+    "rsi_window": 14,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70,
+    "bb_window": 20,
+    "bb_std": 2.0,
+    # Additional parameters...
+}
 ```
 
-To run a simulation of live trading (without actual trades):
-```
-python examples/xrp_trading_example.py --mode simulate
-```
+## Contributing
 
-## Module Structure
+Contributions are welcome! If you'd like to improve the project:
 
-- `crypto_api.py`: Core API client for Robinhood Crypto
-- `analyzers/`: Modules for different types of crypto analysis
-- `visualizers/`: Data visualization tools
-- `strategies/`: Trading strategy implementations
-  - `basic_strategies.py`: Implementation of basic trading strategies
-  - `xrp_advanced_strategy.py`: Advanced XRP trading strategy
-- `utils/`: Utility functions and helper scripts
-- `config.py`: Configuration settings
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -am 'Add new feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Create a new Pull Request
 
 ## License
 
@@ -117,4 +153,4 @@ MIT
 
 ## Disclaimer
 
-This tool is not affiliated with Robinhood and is for educational purposes only. Trading cryptocurrencies involves risk. Make sure you understand these risks before using this tool for actual trading.
+This tool is not affiliated with Robinhood and is for educational purposes only. Trading cryptocurrencies involves risk. Understand these risks before using this tool for actual trading.
